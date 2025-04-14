@@ -11,8 +11,6 @@ import h5py
 from main import step_position, step_velocity, solve_for_intercept_time
 
 
-
-
 def find_closest_values(target_value, x, y, z):
     closest_value_x = np.argmin(np.abs(x - target_value[0]))
     closest_value_y = np.argmin(np.abs(y - target_value[1]))
@@ -23,7 +21,7 @@ def find_closest_values(target_value, x, y, z):
     return closest_value_x, closest_value_y, closest_value_z
 
 c = scipy.constants.speed_of_light * 1e-3  # in um/ns
-V =  3000  # electrods potential in V
+V = 1500  # electrods potential in V
 d = 2850 - 459.3 # mcp anode gap in um
 m = 511e3
 E = V * (c ** 2) / (d * m)  # electric field acceleration in mm/ns^2
@@ -31,7 +29,7 @@ orientation = np.array([0., 1., 0])
 a0 = E * orientation
 # Load the E-Field data from the .h5 file
 file_path = 'C:/Users/lexda/Downloads/E-Field_higher_mesh[Es].h5'
-start_position_data = pd.read_csv("C:/Users/lexda/Downloads/ascii_export_close_to_pore.csv", comment='#', skip_blank_lines=True, sep=';',
+start_position_data = pd.read_csv("C:/Users/lexda/Downloads/ascii_export_2_pore.csv", comment='#', skip_blank_lines=True, sep=';',
                                       header=None, names=["Position [X]","Position [Y]","Position [Z]",
                                                           "Position [ABS (XYZ)]","Time","Velocity [X]","Velocity [Y]",
                                                           "Velocity [Z]"], index_col=False)
@@ -42,26 +40,27 @@ with h5py.File(file_path, 'r') as f:
     y = f['Mesh line y'][:]
     z = f['Mesh line z'][:]
 
-print(z)
-
-
 sum_data = []
 position_start_data_x = []
 position_start_data_z = []
 position_end_data_x = []
-position_end_data_z = []#
+position_end_data_z = []
+
+electron_x = []
+electron_y = []
+electron_z = []
 
 energies = []
 alpha_list = []
 vabs_list = []
-shift_a_pad = 143*2+128   # x = 144 z= 229.1
+#shift_a_pad = 143*2+128   # x = 144 z= 229.1
 # add 200 to shift on to the pad.
 print(len(start_position_data["Velocity [X]"]))
-for j in range(1):
+for j in range(9000):
 
     index_electron = j
-    target_coord = np.array([start_position_data["Position [X]"][index_electron]-shift_a_pad,
-                             start_position_data["Position [Y]"][index_electron]-shift_a_pad,
+    target_coord = np.array([start_position_data["Position [X]"][index_electron],
+                             start_position_data["Position [Y]"][index_electron],
                              start_position_data["Position [Z]"][index_electron]]) #
     position_start_data_x.append(target_coord[0])
     position_start_data_z.append(target_coord[2])
@@ -110,7 +109,7 @@ for j in range(1):
     position_end_data_x.append(position_end[0])
     position_end_data_z.append(position_end[2])
     t_max = 5 # [ns]
-    step = 5000
+    step = 2
     induced_current = []
     field_array_steps_y = []
     start_time_of_electron = np.array(start_position_data["Time"][index_electron]) * 1e9
@@ -155,6 +154,9 @@ for j in range(1):
 
 
         sum_data.append({"Time": time_step+start_time_of_electron, "Current": current})
+        electron_x.append(xi[0])
+        electron_y.append(xi[1])
+        electron_z.append(xi[2])
 
         print(f"Energy = {energy} eV")
 
@@ -190,7 +192,9 @@ plt.title("Induced Charge")
 plt.xlim(0, 10)
 plt.figure()
 plt.scatter(position_end_data_x, position_end_data_z, color='b',label='python',alpha=0.5)
-
+plt.figure()
+plt.hist2d(position_end_data_x, position_end_data_z, cmap='plasma', bins=50)
+plt.figure()
 box_coords = [(-143, -143), (-143, 143), (143, 143), (143, -143)]
 polygon = Polygon(box_coords, closed=True, edgecolor='g', linestyle='--', fill=None)
 plt.gca().add_patch(polygon)
@@ -218,6 +222,17 @@ print (alpha_list)
 alpha_list = np.array(alpha_list)
 plt.hist(90-alpha_list*(180/np.pi), bins=100)
 plt.xlabel('Energy[eV]')
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(electron_x, electron_y, electron_z, label='Electron Trajectory')
+ax.set_xlabel('X [um]')
+ax.set_ylabel('Y [um]')
+ax.set_zlabel('Z [um]')
+ax.set_title('3D Trajectory of the Electron')
+ax.legend()
+
 
 
 plt.show()

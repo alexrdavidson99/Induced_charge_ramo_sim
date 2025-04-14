@@ -75,7 +75,7 @@ if __name__ == "__main__":
     a0 = E * orientation
 
     # data C:/Users/lexda/Downloads/
-    nom_E_field = pd.read_csv("C:/Users/lexda/Downloads/E-Field [Es].txt", names=["x", "y", "z", "Ex", "Ey", "Ez"], skiprows=3, sep='\s+')
+    nom_E_field = pd.read_csv("E-Field [Es].txt", names=["x", "y", "z", "Ex", "Ey", "Ez"], skiprows=3, sep='\s+')
     start_position_data = pd.read_csv("ascii_export(2).csv", comment='#', skip_blank_lines=True, sep=';',
                                       header=None, names=["Position [X]","Position [Y]","Position [Z]",
                                                           "Position [ABS (XYZ)]","Time","Velocity [X]","Velocity [Y]",
@@ -84,7 +84,9 @@ if __name__ == "__main__":
     #3.198215199407748e-14
     # -6.123234e-14 cut
     sum_data = []
-    plot_field(nom_E_field,0)
+    postion_end_data_x = []
+    postion_end_data_z = []
+    plot_field(nom_E_field,-6.123234e-14)
     for j in range(len(start_position_data["Velocity [X]"])-812):
 
         index_electron = j
@@ -109,8 +111,10 @@ if __name__ == "__main__":
 
         print(f"t = {t} time in ns")
         print (f"start velocity = {v0} um/ns")
-        print (f"position = {step_position(x0, v0, a0, t)} um")
-
+        print (f"position_end = {step_position(x0, v0, a0, t)} um")
+        postion_end = step_position(x0, v0, a0, t)
+        postion_end_data_x.append(postion_end[0])
+        postion_end_data_z.append(postion_end[2])
         t_max = 0.8 # [ns]
         step = 500
         induced_current = []
@@ -156,6 +160,8 @@ if __name__ == "__main__":
     plt.xlabel("Time (ns)")
     plt.ylabel("Current (A)")
     plt.title("Induced Charge")
+    plt.figure()
+    plt.scatter(postion_end_data_z, postion_end_data_x)
     print (rolling_sum)
     print(result_sort )
     plt.show()
