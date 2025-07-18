@@ -75,7 +75,8 @@ if __name__ == "__main__":
     a0 = E * orientation
 
     # data C:/Users/lexda/Downloads/
-    nom_E_field = pd.read_csv("E-Field [Es].txt", names=["x", "y", "z", "Ex", "Ey", "Ez"], skiprows=3, sep='\s+')
+    #nom_E_field = pd.read_csv("E-Field [Es].txt", names=["x", "y", "z", "Ex", "Ey", "Ez"], skiprows=3, sep='\s+')
+    nom_E_field = pd.read_csv("./3d/E-Field [Es].txt", names=["x", "y", "z", "Ex", "Ey", "Ez"], skiprows=3, sep='\s+')
     start_position_data = pd.read_csv("ascii_export(2).csv", comment='#', skip_blank_lines=True, sep=';',
                                       header=None, names=["Position [X]","Position [Y]","Position [Z]",
                                                           "Position [ABS (XYZ)]","Time","Velocity [X]","Velocity [Y]",
@@ -86,7 +87,8 @@ if __name__ == "__main__":
     sum_data = []
     postion_end_data_x = []
     postion_end_data_z = []
-    plot_field(nom_E_field,-6.123234e-14)
+    plot_field(nom_E_field,-10)
+    
     for j in range(len(start_position_data["Velocity [X]"])-812):
 
         index_electron = j
