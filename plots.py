@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 from scipy.optimize import curve_fit
 from scipy.signal import chirp, find_peaks, peak_widths
+from scipy import integrate
 
 # import mplhep
 # mplhep.style.use(mplhep.style.LHCb2)
@@ -158,7 +159,7 @@ print(f"Data directory: {DATA_DIR}")
 
 #files_set2 = list(DATA_DIR.glob("induced_charge_tom_P*off*z*.csv"))
 #z_50'
-DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/1500V/')
+DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/1500V-fix/')
 #DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/') # no file = 1000V
 #DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/')
 #list_of_positions = ['x', 'z_49.9','z_60', 'z_100','z_175','z_550', 'z_225', 'z_275', 'z_300', 'z_400', 
@@ -167,7 +168,9 @@ DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induce
 #list_of_positions = ['z_60','z_550', 'z_400','z_225', 'z_neg_550', 'z_neg_275', 'z_neg_100']
 #list_of_positions = ['z_60','z_350','z_550','z_1100']
 #list_of_positions = ['z_60','85','z_490','z_neg_490']
-list_of_positions = ['z_neg_490','z_neg_50', 'z_neg_150','z_neg_250','z_0','z_60','z_75','z_85','z_150','z_250','z_325','z_375','z_490','z_610']
+#list_of_positions = ['z_neg_490','z_neg_50', 'z_neg_150','z_neg_250','z_0','z_60','z_75','z_85','z_150','z_160','z_250','z_325','z_375','z_375','z_400','z_490','z_610']
+#list_of_positions = ['z_neg_490','z_60','z_610']
+list_of_positions = [f'z_{(z)}' for z in range(-530, 320, 50)]
 #list_of_positions = ['x','z_60','z_550', 'z_1100', 'z_1650', 'z_neg_60']
                      #'z_neg_100']
 #list_of_positions = ['z_60']
@@ -179,6 +182,7 @@ peaks_positions = []
 for position in list_of_positions:
     grouped = load_and_group_sum(DATA_DIR_v,position)
     print(f"Processing group sum : {position }")
+    grouped['Current'].min()
     max_current = grouped['Current'].min()
     peaks_array.append(max_current)
     print(f"Max current for {position}: {max_current}")
@@ -186,8 +190,29 @@ for position in list_of_positions:
     peaks_positions.append(z_co)
     plt.plot(z_co, max_current, 'o', label=position)
     #plt.plot(grouped['Time'], grouped['Current']*1e3, label= position)
+    grouped['Time'] = grouped['Time']* 1e-9  # Convert time to ns
+    x = grouped['Time']
+    y = grouped['Current']
+    a = 0       # lower limit
+    b = 1.3e-9       # upper limit
+
+        # Method 1: Using the trapezoidal rule
+    area_trapz = np.trapz(y, x)
+
+    # Method 2: Using Simpson's rule (more accurate)
+    area_simps = integrate.simps(y, x)
+
+    # Method 3: Using definite integral directly
+    #area_quad, _ = integrate.quad(f, a, b)
+
+    # Print results
+    print(f"Area using trapezoidal rule   : {area_trapz:.2e}")
+    print(f"Area using Simpson's rule    : {area_simps:.2e}")
+    print(f"gain in electrons = {area_trapz/-1.6e-19:.2f} electrons")
+    #print(f"Area using scipy.integrate.quad : {area_quad:.6f}")
+    grouped = pd.concat([pd.DataFrame({'Time': [0.0], 'Current': [0.0]}),grouped], ignore_index=True)
     
-    grouped.to_csv(DATA_DIR_v / f'summed_induced_current_from_tom_p_center__off_in_x_test.csv', index=False)
+    #grouped.to_csv(DATA_DIR_v / f'summed_induced_current_from_tom_p_center_1500v_in_z_=_{position}_test.csv', index=False,header=False)
 
 
 plt.xlabel('Time (ns)')
@@ -253,24 +278,24 @@ plt.legend()
 # plt.title('Induced Current at 1500V and 1000V')
 
 V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/peaks_positions_1500V.csv")
-V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/peaks_positions_1000V.csv")
-plt.figure(figsize=(10, 6))
+# V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/peaks_positions_1000V.csv")
+# plt.figure(figsize=(10, 6))
 plt.scatter(V1500['Position'], V1500['Peak Current (A)'], label='1500V', color='blue')
-plt.scatter(V1000['Position'], V1000['Peak Current (A)'], label='1000V', color='orange')
-plt.xlabel('Position (um)')
-plt.ylabel('Induced Current (mA)')
-plt.title('Induced Current at 1500V and 1000V')
+# plt.scatter(V1000['Position'], V1000['Peak Current (A)'], label='1000V', color='orange')
+# plt.xlabel('Position (um)')
+# plt.ylabel('Induced Current (mA)')
+# plt.title('Induced Current at 1500V and 1000V')
 
 
-V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v.csv")
-V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1.3_million.csv")
-plt.figure(figsize=(10, 6)) 
-plt.scatter(V1000['x_position'], V1000['z_position'], label='1000V', color='orange')
-plt.scatter(V1500['x_position'], V1500['z_position'], label='1500V', color='blue')
+# V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v.csv")
+# V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1.3_million.csv")
+# plt.figure(figsize=(10, 6)) 
+# plt.scatter(V1000['x_position'], V1000['z_position'], label='1000V', color='orange')
+#plt.scatter(V1500['x_position'], V1500['z_position'], label='1500V', color='blue')
 
-plt.xlabel('Position (um)')
-plt.ylabel('Position (um)')
-plt.title('Hit map at 1500V and 1000V')
+# plt.xlabel('Position (um)')
+# plt.ylabel('Position (um)')
+# plt.title('Hit map at 1500V and 1000V')
 
 plt.show()
 

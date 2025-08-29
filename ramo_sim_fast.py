@@ -76,9 +76,9 @@ print(f"Number of electrons = {num_electrons}")
 #indices = list(range(middle - 1, middle + 1))
 indices = range(1) #range(num_electrons)
 batch_size = 100000
-total_range = num_electrons
+total_range = 1 #num_electrons
 plt.figure()
-for shift_a_pad in range(220, 580, 50):
+for shift_a_pad in [70]: # range(-30, 580, 50):
     for batch_start in range(0, total_range, batch_size):
         sum_data = []
         for j in range(batch_start, min(batch_start + batch_size, total_range)):
