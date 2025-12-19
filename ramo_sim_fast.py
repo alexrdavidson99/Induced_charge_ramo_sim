@@ -38,7 +38,7 @@ def find_closest_indices(arr, values):
 # ------------------------------
 c = constants.speed_of_light * 1e-3  # in um/ns
 V = 1500  # electrode potential in V
-d = 2500  # mcp anode gap in um
+d = 2510  # mcp anode gap in um
 m = 511e3
 E = V * (c ** 2) / (d * m)  # electric field acceleration in um/ns^2
 E_field = V / (d * 1e-6)
@@ -49,7 +49,7 @@ a0 = E * orientation
 # ------------------------------
 # Load E-Field data
 # ------------------------------
-file_path = './3d/E-Field [Es].h5'
+file_path = './3d/E-Field [Es]_unifrom_filed.h5'
 with h5py.File(file_path, 'r') as f:
     x = f['Mesh line x'][:]
     y = f['Mesh line y'][:]
@@ -64,9 +64,15 @@ with h5py.File(file_path, 'r') as f:
 
 # ------------------------------
 # Load start positions
+#C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_of_15d_pore.csv
+#C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_ramo_600k_elestic.csv
+#C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_Torch_layout_127_pores_1.4_million.csv - first used for pd-25
+
+#ascii_export_sey_Loffler_2022_487319.csv
+
 # ------------------------------
 start_position_data = pd.read_csv(
-    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_of_15d_pore.csv",
+    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_sey_Loffler_2022_1.007m.csv",
     comment='#', skip_blank_lines=True, sep=';',
     header=None,
     names=[
@@ -83,13 +89,15 @@ start_position_data = pd.read_csv(
 num_electrons = len(start_position_data)
 print(f"Number of electrons = {num_electrons}")
 
-shift_a_pads = (-530, 580, 50)
+shift_a_pads = range(-1035, 1165, 50) #[-490,610] #range(-530, 580, 50) x ----> range(-3030, 2580, 250)
+#shift_a_pads_z = [65] #65 is where loffler 2022 is maximum 
+#shift_a_pads_x = range(-530, 2580, 250)  # 670 430 z=fine x=coarse
 batch_size = 100000
 total_range = num_electrons
 
 # Preallocate results
-#position_end_data_x = []
-#position_end_data_z = []
+position_end_data_x = []
+position_end_data_z = []
 
 # Store all currents and times globally
 all_times = []
@@ -117,22 +125,22 @@ for shift_a_pad in shift_a_pads:
                 start_position_data["Velocity [Z]"][index_electron]
             ])  # [m/s]
             v0_um = v0 * 1e-3  # convert to um/ns
-            target_coord = x0[1] + d
+            target_coord = x0[1] + d # target y position at anode
             # Solve for intercept time
             t = solve_for_intercept_time(x0, v0_um, a0, target_coord)
             #print(f"Electron {j}, intercept time: {t:.4f} ns")
 
             # End position
             position_end = step_position(x0, v0_um, a0, t)
-            #position_end_data_x.append(position_end[0])
-            #position_end_data_z.append(position_end[2])
+            position_end_data_x.append(position_end[0])
+            position_end_data_z.append(position_end[2])
 
             # Vectorize kinematics
             #steps = 1000
             #time_steps = np.linspace(0, t, steps)
             # Fixed timestep
             dt = 0.001  # ns
-            steps = int(np.ceil(t / dt)) + 1  # total number of steps until intercept
+            steps = int(np.ceil(t / dt)) + 1 # total number of steps until intercept
 
             # Precompute time steps (stop at t)
             time_steps = np.arange(0, steps * dt, dt)
@@ -182,7 +190,7 @@ for shift_a_pad in shift_a_pads:
         # Save results
         df_grouped = pd.DataFrame({"Time": unique_times, "Current": grouped_currents})
         df_grouped.to_csv(
-            f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/fast_induced_charge_tom_P_1500v_fix_{j-batch_size}_{j}_off_center_z_{shift_a_pad}.csv', 
+            f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/fast_induced_charge_Loffler_2022_1500v_fix_{j-batch_size}_{j}_off_center_z_{shift_a_pad}-1.007m-elastic-0.25_TORCH_17_pores-new-field.csv', 
             index=False    
         )
         print(f"saved batch")
@@ -202,3 +210,8 @@ plt.show()
 end = time.time()
 print(f"Total time: {end - start:.2f} seconds")
 # ------------------------------
+
+x_z_data = {"x_position": position_end_data_x,
+           "z_position": position_end_data_z }
+df_x_z = pd.DataFrame(x_z_data)
+df_x_z.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-1.007m-elastic.csv', index=False)

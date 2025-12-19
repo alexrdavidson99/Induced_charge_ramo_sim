@@ -24,7 +24,7 @@ def find_closest_values(target_value, x, y, z):
 
 c = scipy.constants.speed_of_light * 1e-3  # in um/ns
 V = 1500  # electrods potential in V
-d = 2500 #2489.798052 # mcp anode gap in um
+d = 2510 #2489.798052 # mcp anode gap in um
 m = 511e3
 E = V * (c ** 2) / (d * m)  # electric field acceleration in um/ns^2
 E_field = V/(d*1e-6) 

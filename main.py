@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy.constants
-from plots import plot_field
+#from plots import plot_field
 import matplotlib.pyplot as plt
 
 def solve_for_intercept_time(x0, v0, acc, target_distance):
