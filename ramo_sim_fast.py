@@ -5,6 +5,11 @@ from scipy.interpolate import RegularGridInterpolator
 import h5py
 import time
 from scipy import constants
+import mplhep
+mplhep.style.use(mplhep.style.LHCb2)
+import os
+
+
 
 from main import step_position, step_velocity, solve_for_intercept_time
 
@@ -70,9 +75,9 @@ with h5py.File(file_path, 'r') as f:
 
 #ascii_export_sey_Loffler_2022_487319.csv
 
-# ------------------------------
+# ------------------------------ DEFULT!!! ascii_export_sey_Loffler_2022_1.007m ----------------------
 start_position_data = pd.read_csv(
-    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_sey_Loffler_2022_1.007m.csv",
+    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_sey_Loffler_2022_40232.csv",
     comment='#', skip_blank_lines=True, sep=';',
     header=None,
     names=[
@@ -89,10 +94,12 @@ start_position_data = pd.read_csv(
 num_electrons = len(start_position_data)
 print(f"Number of electrons = {num_electrons}")
 
-shift_a_pads = range(-1035, 1165, 50) #[-490,610] #range(-530, 580, 50) x ----> range(-3030, 2580, 250)
+shift_a_pads = [-1035,-485,65,615,1165]
+#shift_a_pads = [-480,70,620]
+#shift_a_pads = range(-1035, 1165, 50) #[-490,610] #range(-530, 580, 50) x ----> range(-3030, 2580, 250)
 #shift_a_pads_z = [65] #65 is where loffler 2022 is maximum 
 #shift_a_pads_x = range(-530, 2580, 250)  # 670 430 z=fine x=coarse
-batch_size = 100000
+batch_size = 10000
 total_range = num_electrons
 
 # Preallocate results
@@ -124,6 +131,8 @@ for shift_a_pad in shift_a_pads:
                 start_position_data["Velocity [Y]"][index_electron],
                 start_position_data["Velocity [Z]"][index_electron]
             ])  # [m/s]
+            energy = 0.5 * m * np.sum(v0)/(c**2)
+              # in eV
             v0_um = v0 * 1e-3  # convert to um/ns
             target_coord = x0[1] + d # target y position at anode
             # Solve for intercept time
@@ -189,24 +198,45 @@ for shift_a_pad in shift_a_pads:
 
         # Save results
         df_grouped = pd.DataFrame({"Time": unique_times, "Current": grouped_currents})
+        # make folder if not exists
+        
+        # output_folder = f"C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/second_run_{num_electrons}_electrons_1500v_new_field_with_4_pix"
+        # os.makedirs(output_folder, exist_ok=True)
+
+        # df_grouped.to_csv(
+        #     f'{output_folder}/fast_induced_charge_Loffler_2022_1500v_fix_{j-batch_size}_{j}_off_center_z_{shift_a_pad}-{num_electrons}-elastic-0.25_TORCH_17_pores-new-field-one-electron.csv', 
+        #     index=False    
+        # )
+
+        output_folder = f"C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_{num_electrons}_electrons_1500v_new_field_with_4_pix"
+        os.makedirs(output_folder, exist_ok=True)
+
+        filename = f"induced_charge_{j-batch_size}_{j}_z{shift_a_pad}_{num_electrons}.csv"
+
         df_grouped.to_csv(
-            f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/fast_induced_charge_Loffler_2022_1500v_fix_{j-batch_size}_{j}_off_center_z_{shift_a_pad}-1.007m-elastic-0.25_TORCH_17_pores-new-field.csv', 
-            index=False    
+            os.path.join(output_folder, filename),
+            index=False
         )
+
         print(f"saved batch")
 
 # ------------------------------
 # Plot once at the end
 # ------------------------------
 plt.figure(figsize=(10, 6))
-plt.plot(df_grouped["Time"], df_grouped["Current"], linewidth=1.5)
-plt.xlabel("Time (ns)")
-plt.ylabel("Current (A)")
-plt.title("Induced Charge")
-plt.grid()
-plt.tight_layout()
-plt.show()
+#add a 0 current after the final df_grouped current value to make the plot go back to 0 at the end
+df_grouped = df_grouped._append({"Time": df_grouped["Time"].iloc[-1] + 0.001, "Current": 0}, ignore_index=True)
 
+
+plt.plot(df_grouped["Time"], df_grouped["Current"]*1e3, color="darkblue")
+plt.xlabel("Time (ns)")
+plt.ylabel("Induced current (mA)")
+#plt.title("Induced Charge")
+plt.grid()
+#plt.tight_layout()
+
+plt.savefig(f'induce_current_plot_1500v_fix_1e_off_center_z_{shift_a_pad}_from-{num_electrons}-elastic-0.25.pdf')
+plt.show()
 end = time.time()
 print(f"Total time: {end - start:.2f} seconds")
 # ------------------------------
@@ -214,4 +244,4 @@ print(f"Total time: {end - start:.2f} seconds")
 x_z_data = {"x_position": position_end_data_x,
            "z_position": position_end_data_z }
 df_x_z = pd.DataFrame(x_z_data)
-df_x_z.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-1.007m-elastic.csv', index=False)
+df_x_z.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-{num_electrons}-elastic-1electron.csv', index=False)

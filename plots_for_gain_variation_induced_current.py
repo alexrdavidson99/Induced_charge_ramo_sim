@@ -36,6 +36,20 @@ def load_and_group_sum(DATA_DIR,shift, round_decimals=4):
     #df.to_csv(DATA_DIR / f'summed_induced_current_from_tom_p_center__off_in_x.csv', index=False)
     return df.groupby('Time', as_index=False)['Current'].sum()
 
+
+def load_and_group_sum_new(DATA_DIR,shift, round_decimals=4):
+    
+    print(f"Data directory: {DATA_DIR}")
+
+    # Get files for each pattern
+    files = list(DATA_DIR.glob(f"*{shift}*.csv"))
+    print(f"Files found: {files}")
+    df = pd.concat([pd.read_csv(file) for file in files], ignore_index=True)
+    df['Time'] = df['Time'].round(round_decimals)
+    df.groupby('Time', as_index=False)['Current'].sum()
+    #df.to_csv(DATA_DIR / f'summed_induced_current_from_tom_p_center__off_in_x.csv', index=False)
+    return df.groupby('Time', as_index=False)['Current'].sum()
+
 def extract_co_value(co,s):
     match = re.search(fr"{co}_(-?\d+)", s)
     if match:
@@ -74,87 +88,169 @@ def plot_current(filename):
     plt.yscale('symlog')
     #plt.ylim(-1e-5, 1e-6)
     
+gains = [
+    2889476,
+    40232,
+    85952,
+    294858,
+    383788,
+    487319,
+    1031399,
+    1074941,
+    1179721,
+    1261111,
+    1972558
+]
+
+colors = [
+    "#0d0887",
+    "#3a049a",
+    "#6300a7",
+    "#8b0aa5",
+    "#b12a90",
+    "#cc4778",
+    "#e16462",
+    "#f2844b",
+    "#fca636",
+    "#f0f921",
+    "#ffff33"   # highest gain
+]
+
+colors = [
+    "#e6194b",
+    "#3cb44b",
+    "#ffe119",
+    "#4363d8",
+    "#f58231",
+    "#911eb4",
+    "#46f0f0",
+    "#f032e6",
+    "#bcf60c",
+    "#fabebe",
+    "#008080"
+]
+
+currents = []
+times = []
+
+
+plt.figure(figsize=(10*1.5, 6*1.5))
+
+for gain in gains:
+    Path_to_induced_charge = f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_{gain}_electrons_1500v_new_field_with_4_pix'
+    index = gains.index(gain)
+
+
+    gain_1million = gain*1e-6
+    DATA_DIR = Path(Path_to_induced_charge)
+    print(f"Data directory: {DATA_DIR}")
+
+
+    list_of_positions = [f'z-1035'] # [f'z_{(z)}' for z in range(-480, 670, 50)]
+    for position in list_of_positions:
+
+
+        
+
+        grouped = load_and_group_sum_new(DATA_DIR,position)
+        t = np.array(grouped['Time'])
+        I = np.array(grouped['Current']) * 1e3
+
+        times.append(t)
+        currents.append(I)
+
+
+
+        print(f"Processing group sum : {position }")
+        plt.plot(grouped['Time'], grouped['Current']*1e3, color=colors[index], label= rf"Gain = {gain_1million:.2f}$\times10^6$ ")
+
+n_gains = len(gains)
+t_ref = times[0]
+
+interp_currents = []
+
+for t, I in zip(times, currents):
+    I_interp = np.interp(t_ref, t, I)
+    interp_currents.append(I_interp)
+
+# compute average
+avg_current = np.mean(interp_currents, axis=0)
+avg_voltage = avg_current * 50  # Convert current to voltage using R=50 Ohms
+# avg_data_datafame
+avg_df = pd.DataFrame({
+    'Time': t_ref,
+    'Average Current (mA)': avg_current,
+    'Average Voltage (mV)': avg_voltage
+})
+#avg_df.to_csv('average_current_voltage_from_10_runs.csv', index=False)
+#plt.plot(t_ref, avg_current*50, color='black', linewidth=3, label="Average Current")
+
+
+
+plt.legend(loc="lower right")
+plt.ylim(-0.11, 0.045)
+plt.xlabel('Time (ns)')
+plt.ylabel('Induced current (mA)')
+plt.grid()
+plt.savefig('induced_current_comparison_gain_variation_next_to_n.pdf')
+
+
+plt.figure(figsize=(10, 6))
+for gain in gains:
+    Path_to_induced_charge = f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_{gain}_electrons_1500v_new_field_with_4_pix'
+
+
+
     
-# filenames = [
-#     'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_charge_10k_off_tom_pix.csv',
-#     'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_charge_10k_on_tom_pix.csv',
-# ]
-# plt.figure()
-# for filename in filenames:
-#     plot_current(filename)
-    
-# plt.xlabel('Time (ns)')
-# plt.ylabel('Induced Current (A)')
+    DATA_DIR = Path(Path_to_induced_charge)
+    print(f"Data directory: {DATA_DIR}")
 
-# plt.legend()
-# plt.title('Induced Current Over Time')
-# plt.show()
 
-#file_path = './3d/E-Field [Es].h5'
-#z_value = -16  # Set your desired z index or value
+    list_of_positions = [f'z-1035','z-485','z65','z615','z1165'] # [f'z_{(z)}' for z in range(-480, 670, 50)]
+    for position in list_of_positions:
+        
 
-# with h5py.File(file_path, 'r') as f:
-#     # Load mesh grids
-#     x = f['Mesh line x'][:]
-#     y = f['Mesh line y'][:]
-#     z = f['Mesh line z'][:]
-#     # Find the index closest to the desired z value
-#     z_idx = np.argmin(np.abs(z - z_value))
-#     # Load the E-field at this z slice
-#     E_field = f['E-Field'][:, :, z_idx]
-#     # If E_field is structured, extract components
-#     if hasattr(E_field, 'dtype') and E_field.dtype.fields:
-#         Ex = E_field['x']
-#         Ey = E_field['y']
-#         Ez = E_field['z']
-#         E_abs = np.sqrt(Ex**2 + Ey**2 + Ez**2)
-#     else:
-#         E_abs = np.abs(E_field)  # fallback
+        grouped = load_and_group_sum_new(DATA_DIR,position)
+        print(f"Processing group sum : {position }")
+        plt.plot(grouped['Time'], grouped['Current']*1e3, label= position)
 
-# # Plot the absolute field in the x-y plane at the chosen z
-# plt.figure()
-# print(x.shape, y.shape, E_abs.shape)
-# print(z)
-# plt.pcolormesh(y, np.arange(E_abs.shape[0]), E_abs, shading='auto',cmap='plasma', vmin=0, vmax=1000)
-# plt.xlabel('y')
-# plt.ylabel('x')
+Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_1074941_electrons_1500v_new_field_with_4_pix'
 
-# plt.title(f'|E| at z={z[z_idx]:.2f}')
-# plt.colorbar(label='|E|')
-# plt.show()
 
-#load charge tom_ p csv data for all electrons from 1 to 1309561
-# concat all csv files into one dataframe
-
-Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/second_run_1mill_1500v/'
-#DATA_DIR_v = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/elastic-0.135phat/Fast-int-600k-1500V')
 
 plt.figure(figsize=(10, 6))
 DATA_DIR = Path(Path_to_induced_charge)
 print(f"Data directory: {DATA_DIR}")
-files = DATA_DIR.glob(f"*z_620-1*.csv")
-for file in files:
-    print(f"Processing file: {file}")
-    df = pd.read_csv(file)
-    # Plot the current data
-    plt.plot(df['Time'], df['Current'], label=file.name)
-
-Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/second_run_1mill_1500v_new_field/'
 
 
-DATA_DIR = Path(Path_to_induced_charge)
-print(f"Data directory: {DATA_DIR}")
-files = DATA_DIR.glob(f"*z_610*.csv")
-print(f"Data directory: {files}")
-for file in files:
-    print(f"Processing file: {file}")
-    df = pd.read_csv(file)
-    # Plot the current data
-    plt.plot(df['Time'], df['Current'], label=file.name)
-#plt.legend()
+
+colors=["#4363d8", "#26bbbb", "#10C5F2", "#46f0f0", "#3078C1"]
+
+labels = ['Nex to Neighbour 1', 'Neighbour 1', 'Center', 'Neighbour 2', 'Next to Neighbour 2']
+
+list_of_positions = [f'z-1035','z-485','z65','z615','z1165'] # [f'z_{(z)}' for z in range(-480, 670, 50)]
+for position in list_of_positions:
+    
+
+    grouped = load_and_group_sum_new(DATA_DIR,position)
+    print(f"Processing group sum : {position }")
+    # add to grouped a 0 current at time 0 to make the plot start at 0
+    grouped = pd.concat([pd.DataFrame({'Time': [0.0], 'Current': [0.0]}),grouped], ignore_index=True)
+    plt.plot(grouped['Time'], grouped['Current']*1e3, label= labels[list_of_positions.index(position)], color=colors[list_of_positions.index(position)])
+    grouped['Time'] = grouped['Time']* 1e-9  # Convert time to ns
+    #save each grouped to csv
+    grouped.to_csv(DATA_DIR / f'summed_induced_current_1500v_in_z_{position}_sumed.csv', index=False,header=False)
+
+
+plt.xlabel('Time (ns)')
+plt.ylabel('Induced current (mA)')
+plt.grid()
+#plt.xlim(0, 2)
+plt.legend(loc="lower left", fontsize='22')
+plt.savefig('induced_current_at_60_z_1.07million_e.png', dpi=300)
 
 plt.show()
-# Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/'
+
 
 
 # DATA_DIR = Path(Path_to_induced_charge)
@@ -269,32 +365,7 @@ for position in list_of_positions:
 # # list_of_positions = [f'z_{(z)}' for z in range(0, 120, 10)]
 
 
-# # for position in list_of_positions:
-# #     grouped = load_and_group_sum(DATA_DIR_v,position)
-# #     print(f"Processing group sum : {position }")
-# #     grouped['Current'].min()
-# #     max_current = grouped['Current'].min()
-# #     peaks_array.append(max_current)
-# #     print(f"Max current for {position}: {max_current}")
-# #     z_co = extract_co_value("z",position)
-# #     peaks_positions.append(z_co)
-# #     plt.plot(z_co, max_current, 'o', label=position)
-# #     plt.plot(grouped['Time'], grouped['Current'], label= position)
 
-
-
-
-# plt.ylabel('Peak current (mA)')
-# plt.xlabel('x position (mm)')
-# plt.title(' Simulated Induced Current at Different Positions')
-# #plt.yscale('log')
-# #plt.legend()
-# #plt.xlim(-1500, 1500)
-
-# #peaks v  peak  posotions  datafame 
-# peaks_df = pd.DataFrame({'Position': peaks_positions, 'Peak Current (A)': peaks_array})
-# DATA_DIR_P = Path('C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/')
-# peaks_df.to_csv(DATA_DIR_P / 'peaks_positions_1000V.csv', index=False)
 
 popt, pcov = curve_fit(gaussian_convolved_tophat, peaks_positions, peaks_array, p0=[0.0008, 60, 100])
 peaks_positions_array = np.array(peaks_positions)
@@ -333,70 +404,5 @@ plt.plot(summed_current_df['Time']*1e9, summed_current_df['Current']*1e3, label=
 plt.ylabel('Induced current (mA)')
 plt.xlabel('Time (ns)')
 
-plt.legend()
-#plt.ylim(-1, 0)
-plt.grid()
-# plt.title('Different Patterns of Induced Current')
-plt.savefig('induced_current_at_60_z_1.007million_e.png', dpi=300)
-
-
-# # # signal = -grouped1['Current'].values
-# # # time = grouped1['Time'].values
-
-# # # # Normalize the signal between 0 and 1
-# # # signal_norm = (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
-
-# # # # Find indices where signal crosses 10% and 90%
-# # # idx_10 = np.where(signal_norm >= 0.1)[0][0]
-# # # idx_90 = np.where(signal_norm >= 0.9)[0][0]
-
-# # # t_10 = time[idx_10]
-# # # t_90 = time[idx_90]
-# # # rise_time = t_90 - t_10
-
-# # # print(f"10% rise time: {t_10}")
-# # # print(f"90% rise time: {t_90}")
-# # # print(f"Rise time (10% to 90%): {rise_time}")
-# # # plt.vlines([t_10,t_90], ymin=0, ymax=-0.0008, colors='red', linestyles='dashed', label='Rise Time')
-# # # plt.legend()
-
-# # # V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/1500V/summed_induced_current_from_tom_p_center__off_in_x_test.csv")
-# # # V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current/summed_induced_current_from_tom_p_center__off_in_x_test.csv")
-# # # plt.figure(figsize=(10, 6))
-# # # plt.plot(V1500['Time'], V1500['Current']*1e3, label='1500V', color='blue')
-# # # plt.plot(V1000['Time'], V1000['Current']*1e3, label='1000V', color='orange')
-# # # plt.xlabel('Time (ns)')
-# # # plt.ylabel('Induced Current (mA)')
-# # # plt.title('Induced Current at 1500V and 1000V')
-
-# # V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/peaks_positions_1500V.csv")
-# # # V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/peaks_positions_1000V.csv")
-# # # plt.figure(figsize=(10, 6))
-# # plt.scatter(V1500['Position'], V1500['Peak Current (A)'], label='1500V', color='blue')
-# # # plt.scatter(V1000['Position'], V1000['Peak Current (A)'], label='1000V', color='orange')
-# # # plt.xlabel('Position (um)')
-# # # plt.ylabel('Induced Current (mA)')
-# # # plt.title('Induced Current at 1500V and 1000V')
-
-# plt.figure(figsize=(10, 6))
-# V1500 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-400k-elastic.csv")
-# # V1000 = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1.3_million.csv")
-# # # plt.figure(figsize=(10, 6)) 
-
-# #plt.scatter(V1500['x_position'], V1500['z_position'], label='1500V', color='blue')
-# # #plt.scatter(V1000['x_position'], V1000['z_position'], label='1000V', color='orange')
-# plt.hist2d(V1500['x_position'], V1500['z_position'], bins=100, range=[[-2000, 2000], [-300, 300]], cmap='plasma')
-# #plt.hist(V1500['x_position'], bins=100, alpha=0.5, label='1000V', color='orange')
-# #plt.hist(V1500['z_position'], bins=100, alpha=0.5, label='1500V', color='blue')
-# # #plt.hist(V1000['x_position'], bins=500, alpha=0.5, label='1000V', )
-# # plt.hist(V1000['z_position'], bins=500, alpha=0.5, label='1500V',)
-# box_coords = [(-1650, -275), (-1650, 275), (1650, 275), (1650, -275)]
-# polygon = Polygon(box_coords, closed=True, edgecolor='g', linestyle='--', fill=None)
-# plt.gca().add_patch(polygon)
-
-# # # plt.xlabel('Position (um)')
-# # # plt.ylabel('Position (um)')
-# # # plt.title('Hit map at 1500V and 1000V')
-
-plt.show()
+#plt.show()
 
