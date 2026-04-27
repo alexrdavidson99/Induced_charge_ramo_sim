@@ -77,7 +77,7 @@ with h5py.File(file_path, 'r') as f:
 
 # ------------------------------ DEFULT!!! ascii_export_sey_Loffler_2022_1.007m ----------------------
 start_position_data = pd.read_csv(
-    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_sey_Loffler_2022_40232.csv",
+    "C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/ascii_export_sey_Loffler_2022_1.007m.csv",
     comment='#', skip_blank_lines=True, sep=';',
     header=None,
     names=[
@@ -95,16 +95,17 @@ num_electrons = len(start_position_data)
 print(f"Number of electrons = {num_electrons}")
 
 shift_a_pads = [-1035,-485,65,615,1165]
-#shift_a_pads = [-480,70,620]
+#shift_a_pads = [65]
 #shift_a_pads = range(-1035, 1165, 50) #[-490,610] #range(-530, 580, 50) x ----> range(-3030, 2580, 250)
 #shift_a_pads_z = [65] #65 is where loffler 2022 is maximum 
 #shift_a_pads_x = range(-530, 2580, 250)  # 670 430 z=fine x=coarse
-batch_size = 10000
+batch_size = 100000
 total_range = num_electrons
 
 # Preallocate results
 position_end_data_x = []
 position_end_data_z = []
+time_end = []
 
 # Store all currents and times globally
 all_times = []
@@ -123,8 +124,13 @@ for shift_a_pad in shift_a_pads:
             x0 = np.array([
                 start_position_data["Position [X]"][index_electron],
                 start_position_data["Position [Y]"][index_electron],
-                start_position_data["Position [Z]"][index_electron] + shift_a_pad
+                start_position_data["Position [Z]"][index_electron] #+ shift_a_pad
             ])
+            # rotate the position by 90 degrees around the y-axis clockwise
+            x0 = np.array([x0[2], x0[1], - x0[0]])
+            # add the shift to the z position
+            x0 = np.array([x0[0], x0[1], x0[2] + shift_a_pad])
+            
 
             v0 = np.array([
                 start_position_data["Velocity [X]"][index_electron],
@@ -143,6 +149,7 @@ for shift_a_pad in shift_a_pads:
             position_end = step_position(x0, v0_um, a0, t)
             position_end_data_x.append(position_end[0])
             position_end_data_z.append(position_end[2])
+            
 
             # Vectorize kinematics
             #steps = 1000
@@ -181,6 +188,7 @@ for shift_a_pad in shift_a_pads:
             start_time_of_electron = np.array(start_position_data["Time"][index_electron]) * 1e9
             sum_times.extend(time_steps + start_time_of_electron)
             sum_currents.extend(currents)
+            time_end.append(t+start_time_of_electron)
 
         # Store batch results
         
@@ -208,7 +216,7 @@ for shift_a_pad in shift_a_pads:
         #     index=False    
         # )
 
-        output_folder = f"C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_{num_electrons}_electrons_1500v_new_field_with_4_pix"
+        output_folder = f"C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_{num_electrons}_electrons_1500v_new_field_with_4_pix/90_degree_clockwise_rotation"
         os.makedirs(output_folder, exist_ok=True)
 
         filename = f"induced_charge_{j-batch_size}_{j}_z{shift_a_pad}_{num_electrons}.csv"
@@ -240,8 +248,11 @@ plt.show()
 end = time.time()
 print(f"Total time: {end - start:.2f} seconds")
 # ------------------------------
-
-x_z_data = {"x_position": position_end_data_x,
-           "z_position": position_end_data_z }
-df_x_z = pd.DataFrame(x_z_data)
-df_x_z.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-{num_electrons}-elastic-1electron.csv', index=False)
+if shift_a_pads == [65]:
+    x_z_data = {"x_position": position_end_data_x,
+            "z_position": position_end_data_z }
+    df_x_z = pd.DataFrame(x_z_data)
+    df_x_z.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-{num_electrons}-elastic-1electron_clock_wise_90deg.csv', index=False)
+    time_data = {"time": time_end}
+    df_time = pd.DataFrame(time_data)
+    df_time.to_csv(f'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/time_data_from_python_1500v_Loffler_2022-{num_electrons}-elastic-1electron.csv', index=False)

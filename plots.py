@@ -337,7 +337,7 @@ plt.legend()
 #plt.ylim(-1, 0)
 plt.grid()
 # plt.title('Different Patterns of Induced Current')
-plt.savefig('induced_current_at_60_z_1.007million_e.png', dpi=300)
+plt.savefig('induced_current_at_60_z_1.007million_e_clock_wise.png', dpi=300)
 
 
 # # # signal = -grouped1['Current'].values
@@ -397,6 +397,39 @@ plt.savefig('induced_current_at_60_z_1.007million_e.png', dpi=300)
 # # # plt.xlabel('Position (um)')
 # # # plt.ylabel('Position (um)')
 # # # plt.title('Hit map at 1500V and 1000V')
+
+plt.figure(figsize=(10, 6))
+x_z_data = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/x_z_data_from_python_1500v_Loffler_2022-1074941-elastic-1electron.csv")
+#plt.hist2d(x_z_data['x_position'], x_z_data['z_position'], bins=100, range=[[-1000, 500], [-1000, 500]], cmap='plasma')
+
+#rotate the plot by 90 degrees
+new_x = -x_z_data['z_position']
+new_z = x_z_data['x_position']
+plt.figure(figsize=(10, 6))
+#plt.hist2d(new_x,new_z, bins=100, range=[[-1000, 500], [-1000, 500]], cmap='plasma')
+plt.hist(x_z_data['x_position'], bins=100, alpha=0.5, label='x_position', color='orange')
+plt.hist(x_z_data['z_position'], bins=100, alpha=0.5, label='z_position', color='blue')
+
+
+#plt.hist(new_x, bins=100, alpha=0.5, label='x_position', color='orange')
+#plt.hist(new_z, bins=100, alpha=0.5, label='z_position', color='blue')
+
+#box_coords = [(-1650, -275), (-1650, 275), (1650, 275), (1650, -275)]
+# two horizontal lines at z = -275 and z = 275
+#plt.hlines([-205, 345], xmin=-300, xmax=300, color='g', linestyle='--')
+#plt.plot(x_z_data['x_position'], x_z_data['z_position'], '.', markersize=1, alpha=0.5)
+#polygon = Polygon(box_coords, closed=True, edgecolor='g', linestyle='--', fill=None)
+#plt.gca().add_patch(polygon)
+
+plt.xlabel('X Position (um)')
+plt.ylabel('Z Position (um)')
+#plt.title('Hit map at 1500V and 1000V')
+plt.yscale('log')
+plt.figure(figsize=(10, 6))
+time_data = pd.read_csv("C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/time_data_from_python_1500v_Loffler_2022-1074941-elastic-1electron.csv")
+plt.hist(time_data['time'], bins=100, color='blue', alpha=0.7)
+plt.xlabel('Time (s)')
+
 
 plt.show()
 

@@ -214,7 +214,7 @@ for gain in gains:
         print(f"Processing group sum : {position }")
         plt.plot(grouped['Time'], grouped['Current']*1e3, label= position)
 
-Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_1074941_electrons_1500v_new_field_with_4_pix'
+Path_to_induced_charge = 'C:/Users/lexda/PycharmProjects/Induced_charge_ramo_sim/induced_current_loffler/run_1074941_electrons_1500v_new_field_with_4_pix/90_degree_clockwise_rotation'
 
 
 
